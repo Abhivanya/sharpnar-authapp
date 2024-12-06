@@ -8,14 +8,37 @@ const AuthContext = React.createContext({
 });
 
 export const AuthProvider = ({ children }) => {
-  const initialToken = localStorage.getItem("token");
-  const [token, setToken] = useState(initialToken);
+  const [token, setToken] = useState(() => {
+    const storedToken = JSON.parse(localStorage.getItem("token"));
+    if (storedToken && Date.now() < storedToken.expireTokenTime) {
+      return storedToken.token;
+    }
+    localStorage.removeItem("token");
+    return null;
+  });
 
   let isLoggedIn = !!token;
+
   const handleLogin = (token) => {
     setToken(token);
-    localStorage.setItem("token", token);
+    const expireTokenTime = Date.now() + 5 * 60 * 1000;
+    localStorage.setItem(
+      "token",
+      JSON.stringify({ token: token, expireTokenTime: expireTokenTime })
+    );
   };
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const storedToken = JSON.parse(localStorage.getItem("token"));
+      if (storedToken && Date.now() >= storedToken.expireTokenTime) {
+        handleLogout();
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const handleLogout = () => {
     setToken(null);
     localStorage.removeItem("token");
