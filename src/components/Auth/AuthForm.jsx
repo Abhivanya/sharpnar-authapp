@@ -1,9 +1,11 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useContext } from "react";
 
 import classes from "./AuthForm.module.css";
 
 const AuthForm = () => {
   const [isLogin, setIsLogin] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+
   const emailRef = useRef();
   const passwordRef = useRef();
 
@@ -16,29 +18,34 @@ const AuthForm = () => {
     const enteredEmail = emailRef.current.value;
     const enteredPassword = passwordRef.current.value;
     try {
+      setIsLoading(true);
+      let url;
       if (isLogin) {
+        url =
+          "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=AIzaSyDDTATv0YiM4tUTMW_am_sGPbArW4ZmUOk";
       } else {
-        const response = await fetch(
-          "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=AIzaSyDGFVm98_6VmN7odn0DZtuX7Qrnfv7UvNQ/",
-          {
-            method: "POST",
-            body: JSON.stringify({
-              email: enteredEmail,
-              password: enteredPassword,
-              returnSecureToken: true,
-            }),
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        if (response.ok) {
-          const res = response.json();
-          console.log(res);
-        }
+        url =
+          "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key=AIzaSyDDTATv0YiM4tUTMW_am_sGPbArW4ZmUOk";
       }
+      const response = await fetch(url, {
+        method: "POST",
+        body: JSON.stringify({
+          email: enteredEmail,
+          password: enteredPassword,
+          returnSecureToken: true,
+        }),
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+      const res = await response.json();
+      setIsLoading(false);
+      if (!response.ok) {
+        throw new Error(res.error.message || "Authentication failed!");
+      }
+      console.log(res);
     } catch (error) {
-      alert(error.message);
+      alert(error);
       console.log(error);
     }
   };
@@ -55,7 +62,8 @@ const AuthForm = () => {
           <input ref={passwordRef} type="password" id="password" required />
         </div>
         <div className={classes.actions}>
-          <button>{isLogin ? "Login" : "Sing Up"}</button>
+          {!isLoading && <button>{isLogin ? "Login" : "Sing Up"}</button>}
+          {isLoading && <p>Loading .....</p>}
           <button
             type="button"
             className={classes.toggle}
